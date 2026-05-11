@@ -39,9 +39,7 @@ const INITIAL_OCCURRENCES = [
     id: "OC-1001",
     studentName: "Marina Alves",
     studentId: "202300145",
-    studentCpf: "123.456.789-10",
     studentEmail: "marina.alves@email.local",
-    studentPhone: "(47) 99999-1010",
     category: "Nota",
     priority: "Média",
     description: "Solicitação de revisão de nota da avaliação bimestral.",
@@ -54,9 +52,7 @@ const INITIAL_OCCURRENCES = [
     id: "OC-1002",
     studentName: "Rafael Martins",
     studentId: "202200771",
-    studentCpf: "987.654.321-00",
     studentEmail: "rafael.martins@email.local",
-    studentPhone: "(47) 98888-2020",
     category: "Frequência",
     priority: "Alta",
     description: "Aluno contesta lançamento de falta em aula prática.",
@@ -69,9 +65,7 @@ const INITIAL_OCCURRENCES = [
     id: "OC-1003",
     studentName: "Beatriz Costa",
     studentId: "202100441",
-    studentCpf: "111.222.333-44",
     studentEmail: "beatriz.costa@email.local",
-    studentPhone: "(47) 97777-3030",
     category: "Solicitação administrativa",
     priority: "Crítica",
     description: "Solicitação envolvendo documentação acadêmica e prazo de matrícula.",
@@ -187,23 +181,17 @@ function showApp(user) {
   if (user.role === "ALUNO") {
     document.querySelector("#studentName").value = user.name;
     document.querySelector("#studentId").value = user.studentId;
-    document.querySelector("#studentCpf").value = user.cpf || "";
     document.querySelector("#studentEmail").value = user.email;
-    document.querySelector("#studentPhone").value = user.phone || "";
 
     document.querySelector("#studentName").disabled = true;
     document.querySelector("#studentId").disabled = true;
-    document.querySelector("#studentCpf").disabled = true;
     document.querySelector("#studentEmail").disabled = true;
-    document.querySelector("#studentPhone").disabled = true;
 
     occurrenceForm.closest("article").style.display = "";
   } else {
     document.querySelector("#studentName").disabled = false;
     document.querySelector("#studentId").disabled = false;
-    document.querySelector("#studentCpf").disabled = false;
     document.querySelector("#studentEmail").disabled = false;
-    document.querySelector("#studentPhone").disabled = false;
 
     occurrenceForm.closest("article").style.display = "";
   }
@@ -252,9 +240,7 @@ function createOccurrence(event) {
     id: `OC-${Math.floor(Math.random() * 9000) + 1000}`,
     studentName: document.querySelector("#studentName").value,
     studentId: document.querySelector("#studentId").value,
-    studentCpf: document.querySelector("#studentCpf").value,
     studentEmail: document.querySelector("#studentEmail").value,
-    studentPhone: document.querySelector("#studentPhone").value,
     category: document.querySelector("#category").value,
     priority: document.querySelector("#priority").value,
     description: document.querySelector("#description").value,
@@ -271,7 +257,7 @@ function createOccurrence(event) {
 
   writeLog(
     "OCORRENCIA_CRIADA",
-    `Criada ocorrência ${occurrence.id} para ${occurrence.studentName} / ${occurrence.studentCpf}. Descrição: ${occurrence.description}`
+    `Criada ocorrência ${occurrence.id} para ${occurrence.studentName} / matrícula ${occurrence.studentId}. Descrição: ${occurrence.description}`
   );
 
   occurrenceForm.reset();
@@ -357,11 +343,7 @@ function render() {
         <strong>${item.studentName}</strong><br />
         <span class="muted-text">${item.studentId}</span>
       </td>
-      <td>${item.studentCpf}</td>
-      <td>
-        ${item.studentEmail}<br />
-        ${item.studentPhone}
-      </td>
+      <td>${item.studentEmail}</td>
       <td>${item.category}</td>
       <td><span class="priority ${item.priority}">${item.priority}</span></td>
       <td>${item.status}</td>
