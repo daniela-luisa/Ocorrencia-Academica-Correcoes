@@ -5,7 +5,9 @@ const USERS = [
     email: "aluno@faculdade.local",
     password: "123456",
     role: "ALUNO",
-    studentId: "202400001"
+    studentId: "202400001",
+    cpf: "000.000.000-00",
+    phone: "(47) 99999-0001"
   },
   {
     id: 2,
@@ -32,14 +34,16 @@ const STORAGE_KEYS = {
   audit: "ocorrencias_logs"
 };
 
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutos em milissegundos
+
 const INITIAL_OCCURRENCES = [
   {
     id: "OC-1001",
     studentName: "Marina Alves",
     studentId: "202300145",
-    studentCpf: "123.456.789-10",
     studentEmail: "marina.alves@email.local",
-    studentPhone: "(47) 99999-1010",
+    turma: "5A",
+    responsavel: "professor@faculdade.local",
     category: "Nota",
     priority: "Média",
     description: "Solicitação de revisão de nota da avaliação bimestral.",
@@ -52,9 +56,9 @@ const INITIAL_OCCURRENCES = [
     id: "OC-1002",
     studentName: "Rafael Martins",
     studentId: "202200771",
-    studentCpf: "987.654.321-00",
     studentEmail: "rafael.martins@email.local",
-    studentPhone: "(47) 98888-2020",
+    turma: "5B",
+    responsavel: "professor@faculdade.local",
     category: "Frequência",
     priority: "Alta",
     description: "Aluno contesta lançamento de falta em aula prática.",
@@ -67,9 +71,9 @@ const INITIAL_OCCURRENCES = [
     id: "OC-1003",
     studentName: "Beatriz Costa",
     studentId: "202100441",
-    studentCpf: "111.222.333-44",
     studentEmail: "beatriz.costa@email.local",
-    studentPhone: "(47) 97777-3030",
+    turma: "6A",
+    responsavel: "admin@faculdade.local",
     category: "Solicitação administrativa",
     priority: "Crítica",
     description: "Solicitação envolvendo documentação acadêmica e prazo de matrícula.",
@@ -86,10 +90,9 @@ const loginForm = document.querySelector("#loginForm");
 const occurrenceForm = document.querySelector("#occurrenceForm");
 const logoutBtn = document.querySelector("#logoutBtn");
 const exportBtn = document.querySelector("#exportBtn");
-const clearLogsBtn = document.querySelector("#clearLogsBtn");
+
 const resetBtn = document.querySelector("#resetBtn");
 const searchInput = document.querySelector("#search");
-const roleSelect = document.querySelector("#roleSelect");
 
 const sessionBadge = document.querySelector("#sessionBadge");
 const currentUserName = document.querySelector("#currentUserName");
@@ -99,6 +102,11 @@ const auditLog = document.querySelector("#auditLog");
 const totalOccurrences = document.querySelector("#totalOccurrences");
 const criticalOccurrences = document.querySelector("#criticalOccurrences");
 const lastUpdate = document.querySelector("#lastUpdate");
+
+function isSessionExpired(session) {
+  if (!session || !session.loginAt) return true;
+  return (Date.now() - session.loginAt) > SESSION_TIMEOUT_MS;
+}
 
 function boot() {
   if (!localStorage.getItem(STORAGE_KEYS.occurrences)) {
@@ -119,7 +127,13 @@ function boot() {
   const session = getSession();
 
   if (session) {
-    showApp(session);
+    if (isSessionExpired(session)) {
+      writeLog("SESSAO_EXPIRADA", `Sessão de ${session.email} encerrada por inatividade.`);
+      localStorage.removeItem(STORAGE_KEYS.session);
+      showLogin();
+    } else {
+      showApp(session);
+    }
   } else {
     showLogin();
   }
@@ -182,7 +196,28 @@ function showApp(user) {
 
   currentUserName.textContent = user.name;
   currentUserDetails.textContent = `${user.email} | Perfil: ${user.role}`;
-  roleSelect.value = user.role;
+
+  if (user.role === "ALUNO") {
+    document.querySelector("#studentName").value = user.name;
+    document.querySelector("#studentId").value = user.studentId;
+    document.querySelector("#studentEmail").value = user.email;
+
+    document.querySelector("#studentName").disabled = true;
+    document.querySelector("#studentId").disabled = true;
+    document.querySelector("#studentEmail").disabled = true;
+
+    document.querySelector("#responsavelLabel").style.display = "";
+
+    occurrenceForm.closest("article").style.display = "";
+  } else {
+    document.querySelector("#studentName").disabled = false;
+    document.querySelector("#studentId").disabled = false;
+    document.querySelector("#studentEmail").disabled = false;
+
+    document.querySelector("#responsavelLabel").style.display = "none";
+
+    occurrenceForm.closest("article").style.display = "";
+  }
 
   render();
 }
@@ -196,7 +231,7 @@ function login(email, password) {
     return;
   }
 
-  saveSession(user);
+  saveSession({ ...user, loginAt: Date.now() });
   writeLog("LOGIN_OK", `Usuário ${user.email} entrou no sistema.`);
   showApp(user);
 }
@@ -208,38 +243,44 @@ function logout() {
   showLogin();
 }
 
-function changeRole(newRole) {
-  const session = getSession();
-
-  if (!session) {
-    return;
-  }
-
-  session.role = newRole;
-  saveSession(session);
-  writeLog("PERFIL_ALTERADO", `Perfil ativo alterado manualmente para ${newRole}.`);
-  showApp(session);
-}
-
 function createOccurrence(event) {
   event.preventDefault();
 
   const session = getSession();
 
+  if (!session) {
+    alert("Você precisa estar logado para registrar uma ocorrência.");
+    return;
+  }
+
+  if (session.role === "ALUNO") {
+    document.querySelector("#studentName").value = session.name;
+    document.querySelector("#studentId").value = session.studentId;
+    document.querySelector("#studentEmail").value = session.email;
+  }
+
+  const responsavel = session.role === "ALUNO"
+    ? document.querySelector("#responsavel").value
+    : session.email;
+
+  if (session.role === "ALUNO" && !responsavel) {
+    alert("Selecione o professor responsável antes de salvar.");
+    return;
+  }
+
   const occurrence = {
     id: `OC-${Math.floor(Math.random() * 9000) + 1000}`,
     studentName: document.querySelector("#studentName").value,
     studentId: document.querySelector("#studentId").value,
-    studentCpf: document.querySelector("#studentCpf").value,
     studentEmail: document.querySelector("#studentEmail").value,
-    studentPhone: document.querySelector("#studentPhone").value,
+    responsavel,
     category: document.querySelector("#category").value,
     priority: document.querySelector("#priority").value,
     description: document.querySelector("#description").value,
     internalNote: document.querySelector("#internalNote").value,
     privacyAck: document.querySelector("#privacyAck").checked,
     status: "Aberta",
-    createdBy: session ? session.email : "desconhecido",
+    createdBy: session.email,
     createdAt: new Date().toISOString()
   };
 
@@ -249,7 +290,7 @@ function createOccurrence(event) {
 
   writeLog(
     "OCORRENCIA_CRIADA",
-    `Criada ocorrência ${occurrence.id} para ${occurrence.studentName} / ${occurrence.studentCpf}. Descrição: ${occurrence.description}`
+    `Criada ocorrência ${occurrence.id} para ${occurrence.studentName} / matrícula ${occurrence.studentId}. Descrição: ${occurrence.description}`
   );
 
   occurrenceForm.reset();
@@ -309,11 +350,6 @@ function exportEverything() {
   writeLog("EXPORTACAO_TOTAL", "Usuário exportou todos os dados do sistema.");
 }
 
-function clearLogs() {
-  saveAuditLogs([]);
-  render();
-}
-
 function resetData() {
   localStorage.setItem(STORAGE_KEYS.occurrences, JSON.stringify(INITIAL_OCCURRENCES));
   localStorage.setItem(STORAGE_KEYS.audit, JSON.stringify([]));
@@ -322,16 +358,33 @@ function resetData() {
 }
 
 function render() {
+  const session = getSession();
+
+  if (isSessionExpired(session)) {
+    writeLog("SESSAO_EXPIRADA", "Sessão encerrada por inatividade.");
+    localStorage.removeItem(STORAGE_KEYS.session);
+    showLogin();
+    return;
+  }
+
   const term = searchInput.value.toLowerCase();
   const occurrences = getOccurrences();
 
-  const filtered = occurrences.filter((item) => {
+  const visibleOccurrences = (() => {
+    if (!session) return [];
+    if (session.role === "ADMIN") return occurrences;
+    if (session.role === "PROFESSOR") return occurrences.filter((item) => item.responsavel === session.email);
+    if (session.role === "ALUNO") return occurrences.filter((item) => item.studentId === session.studentId);
+    return [];
+  })();
+
+  const filtered = visibleOccurrences.filter((item) => {
     const content = JSON.stringify(item).toLowerCase();
     return content.includes(term);
   });
 
-  totalOccurrences.textContent = occurrences.length;
-  criticalOccurrences.textContent = occurrences.filter((item) => item.priority === "Crítica").length;
+  totalOccurrences.textContent = visibleOccurrences.length;
+  criticalOccurrences.textContent = visibleOccurrences.filter((item) => item.priority === "Crítica").length;
   lastUpdate.textContent = `Atualizado em ${new Date().toLocaleTimeString("pt-BR")}`;
 
   occurrencesTable.innerHTML = filtered.map((item) => `
@@ -340,11 +393,7 @@ function render() {
         <strong>${item.studentName}</strong><br />
         <span class="muted-text">${item.studentId}</span>
       </td>
-      <td>${item.studentCpf}</td>
-      <td>
-        ${item.studentEmail}<br />
-        ${item.studentPhone}
-      </td>
+      <td>${item.studentEmail}</td>
       <td>${item.category}</td>
       <td><span class="priority ${item.priority}">${item.priority}</span></td>
       <td>${item.status}</td>
@@ -362,18 +411,22 @@ function render() {
     </tr>
   `).join("");
 
-  const logs = getAuditLogs();
+  if (session && session.role === "ADMIN") {
+    const logs = getAuditLogs();
 
-  if (logs.length === 0) {
-    auditLog.innerHTML = `<div class="notice">Nenhum log registrado.</div>`;
+    if (logs.length === 0) {
+      auditLog.innerHTML = `<div class="notice">Nenhum log registrado.</div>`;
+    } else {
+      auditLog.innerHTML = logs.map((log) => `
+        <div class="log-item">
+          <strong>${log.when}</strong><br />
+          usuário=${log.user || "—"} | perfil=${log.role || "—"} | ação=${log.action}<br />
+          detalhe=${log.detail}
+        </div>
+      `).join("");
+    }
   } else {
-    auditLog.innerHTML = logs.map((log) => `
-      <div class="log-item">
-        <strong>${log.when}</strong><br />
-        usuário=${log.user || "—"} | perfil=${log.role || "—"} | ação=${log.action}<br />
-        detalhe=${log.detail}
-      </div>
-    `).join("");
+    auditLog.innerHTML = `<div class="notice">Acesso restrito. Apenas administradores podem visualizar os logs.</div>`;
   }
 }
 
@@ -389,10 +442,8 @@ loginForm.addEventListener("submit", (event) => {
 occurrenceForm.addEventListener("submit", createOccurrence);
 logoutBtn.addEventListener("click", logout);
 exportBtn.addEventListener("click", exportEverything);
-clearLogsBtn.addEventListener("click", clearLogs);
 resetBtn.addEventListener("click", resetData);
 searchInput.addEventListener("input", render);
-roleSelect.addEventListener("change", (event) => changeRole(event.target.value));
 
 window.deleteOccurrence = deleteOccurrence;
 window.changeStatus = changeStatus;
