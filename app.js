@@ -34,6 +34,8 @@ const STORAGE_KEYS = {
   audit: "ocorrencias_logs"
 };
 
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutos em milissegundos
+
 const INITIAL_OCCURRENCES = [
   {
     id: "OC-1001",
@@ -101,6 +103,11 @@ const totalOccurrences = document.querySelector("#totalOccurrences");
 const criticalOccurrences = document.querySelector("#criticalOccurrences");
 const lastUpdate = document.querySelector("#lastUpdate");
 
+function isSessionExpired(session) {
+  if (!session || !session.loginAt) return true;
+  return (Date.now() - session.loginAt) > SESSION_TIMEOUT_MS;
+}
+
 function boot() {
   if (!localStorage.getItem(STORAGE_KEYS.occurrences)) {
     localStorage.setItem(STORAGE_KEYS.occurrences, JSON.stringify(INITIAL_OCCURRENCES));
@@ -120,7 +127,13 @@ function boot() {
   const session = getSession();
 
   if (session) {
-    showApp(session);
+    if (isSessionExpired(session)) {
+      writeLog("SESSAO_EXPIRADA", `Sessão de ${session.email} encerrada por inatividade.`);
+      localStorage.removeItem(STORAGE_KEYS.session);
+      showLogin();
+    } else {
+      showApp(session);
+    }
   } else {
     showLogin();
   }
@@ -218,7 +231,7 @@ function login(email, password) {
     return;
   }
 
-  saveSession(user);
+  saveSession({ ...user, loginAt: Date.now() });
   writeLog("LOGIN_OK", `Usuário ${user.email} entrou no sistema.`);
   showApp(user);
 }
@@ -345,6 +358,15 @@ function resetData() {
 }
 
 function render() {
+  const session = getSession();
+
+  if (isSessionExpired(session)) {
+    writeLog("SESSAO_EXPIRADA", "Sessão encerrada por inatividade.");
+    localStorage.removeItem(STORAGE_KEYS.session);
+    showLogin();
+    return;
+  }
+
   const term = searchInput.value.toLowerCase();
   const session = getSession();
   const occurrences = getOccurrences();
