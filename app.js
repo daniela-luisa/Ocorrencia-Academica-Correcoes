@@ -89,7 +89,6 @@ const exportBtn = document.querySelector("#exportBtn");
 const clearLogsBtn = document.querySelector("#clearLogsBtn");
 const resetBtn = document.querySelector("#resetBtn");
 const searchInput = document.querySelector("#search");
-const roleSelect = document.querySelector("#roleSelect");
 
 const sessionBadge = document.querySelector("#sessionBadge");
 const currentUserName = document.querySelector("#currentUserName");
@@ -182,7 +181,6 @@ function showApp(user) {
 
   currentUserName.textContent = user.name;
   currentUserDetails.textContent = `${user.email} | Perfil: ${user.role}`;
-  roleSelect.value = user.role;
 
   render();
 }
@@ -206,19 +204,6 @@ function logout() {
   writeLog("LOGOUT", session ? `${session.email} saiu do sistema.` : "Sessão encerrada.");
   localStorage.removeItem(STORAGE_KEYS.session);
   showLogin();
-}
-
-function changeRole(newRole) {
-  const session = getSession();
-
-  if (!session) {
-    return;
-  }
-
-  session.role = newRole;
-  saveSession(session);
-  writeLog("PERFIL_ALTERADO", `Perfil ativo alterado manualmente para ${newRole}.`);
-  showApp(session);
 }
 
 function createOccurrence(event) {
@@ -392,7 +377,6 @@ exportBtn.addEventListener("click", exportEverything);
 clearLogsBtn.addEventListener("click", clearLogs);
 resetBtn.addEventListener("click", resetData);
 searchInput.addEventListener("input", render);
-roleSelect.addEventListener("change", (event) => changeRole(event.target.value));
 
 window.deleteOccurrence = deleteOccurrence;
 window.changeStatus = changeStatus;
