@@ -40,6 +40,8 @@ const INITIAL_OCCURRENCES = [
     studentName: "Marina Alves",
     studentId: "202300145",
     studentEmail: "marina.alves@email.local",
+    turma: "5A",
+    responsavel: "professor@faculdade.local",
     category: "Nota",
     priority: "Média",
     description: "Solicitação de revisão de nota da avaliação bimestral.",
@@ -53,6 +55,8 @@ const INITIAL_OCCURRENCES = [
     studentName: "Rafael Martins",
     studentId: "202200771",
     studentEmail: "rafael.martins@email.local",
+    turma: "5B",
+    responsavel: "professor@faculdade.local",
     category: "Frequência",
     priority: "Alta",
     description: "Aluno contesta lançamento de falta em aula prática.",
@@ -66,6 +70,8 @@ const INITIAL_OCCURRENCES = [
     studentName: "Beatriz Costa",
     studentId: "202100441",
     studentEmail: "beatriz.costa@email.local",
+    turma: "6A",
+    responsavel: "admin@faculdade.local",
     category: "Solicitação administrativa",
     priority: "Crítica",
     description: "Solicitação envolvendo documentação acadêmica e prazo de matrícula.",
@@ -187,11 +193,15 @@ function showApp(user) {
     document.querySelector("#studentId").disabled = true;
     document.querySelector("#studentEmail").disabled = true;
 
+    document.querySelector("#responsavelLabel").style.display = "";
+
     occurrenceForm.closest("article").style.display = "";
   } else {
     document.querySelector("#studentName").disabled = false;
     document.querySelector("#studentId").disabled = false;
     document.querySelector("#studentEmail").disabled = false;
+
+    document.querySelector("#responsavelLabel").style.display = "none";
 
     occurrenceForm.closest("article").style.display = "";
   }
@@ -236,18 +246,28 @@ function createOccurrence(event) {
     document.querySelector("#studentEmail").value = session.email;
   }
 
+  const responsavel = session.role === "ALUNO"
+    ? document.querySelector("#responsavel").value
+    : session.email;
+
+  if (session.role === "ALUNO" && !responsavel) {
+    alert("Selecione o professor responsável antes de salvar.");
+    return;
+  }
+
   const occurrence = {
     id: `OC-${Math.floor(Math.random() * 9000) + 1000}`,
     studentName: document.querySelector("#studentName").value,
     studentId: document.querySelector("#studentId").value,
     studentEmail: document.querySelector("#studentEmail").value,
+    responsavel,
     category: document.querySelector("#category").value,
     priority: document.querySelector("#priority").value,
     description: document.querySelector("#description").value,
     internalNote: document.querySelector("#internalNote").value,
     privacyAck: document.querySelector("#privacyAck").checked,
     status: "Aberta",
-    createdBy: session ? session.email : "desconhecido",
+    createdBy: session.email,
     createdAt: new Date().toISOString()
   };
 
@@ -326,15 +346,24 @@ function resetData() {
 
 function render() {
   const term = searchInput.value.toLowerCase();
+  const session = getSession();
   const occurrences = getOccurrences();
 
-  const filtered = occurrences.filter((item) => {
+  const visibleOccurrences = (() => {
+    if (!session) return [];
+    if (session.role === "ADMIN") return occurrences;
+    if (session.role === "PROFESSOR") return occurrences.filter((item) => item.responsavel === session.email);
+    if (session.role === "ALUNO") return occurrences.filter((item) => item.studentId === session.studentId);
+    return [];
+  })();
+
+  const filtered = visibleOccurrences.filter((item) => {
     const content = JSON.stringify(item).toLowerCase();
     return content.includes(term);
   });
 
-  totalOccurrences.textContent = occurrences.length;
-  criticalOccurrences.textContent = occurrences.filter((item) => item.priority === "Crítica").length;
+  totalOccurrences.textContent = visibleOccurrences.length;
+  criticalOccurrences.textContent = visibleOccurrences.filter((item) => item.priority === "Crítica").length;
   lastUpdate.textContent = `Atualizado em ${new Date().toLocaleTimeString("pt-BR")}`;
 
   occurrencesTable.innerHTML = filtered.map((item) => `
@@ -360,8 +389,6 @@ function render() {
       </td>
     </tr>
   `).join("");
-
-  const session = getSession();
 
   if (session && session.role === "ADMIN") {
     const logs = getAuditLogs();
