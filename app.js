@@ -347,18 +347,24 @@ function render() {
     </tr>
   `).join("");
 
-  const logs = getAuditLogs();
+  const session = getSession();
 
-  if (logs.length === 0) {
-    auditLog.innerHTML = `<div class="notice">Nenhum log registrado.</div>`;
+  if (session && session.role === "ADMIN") {
+    const logs = getAuditLogs();
+
+    if (logs.length === 0) {
+      auditLog.innerHTML = `<div class="notice">Nenhum log registrado.</div>`;
+    } else {
+      auditLog.innerHTML = logs.map((log) => `
+        <div class="log-item">
+          <strong>${log.when}</strong><br />
+          usuário=${log.user || "—"} | perfil=${log.role || "—"} | ação=${log.action}<br />
+          detalhe=${log.detail}
+        </div>
+      `).join("");
+    }
   } else {
-    auditLog.innerHTML = logs.map((log) => `
-      <div class="log-item">
-        <strong>${log.when}</strong><br />
-        usuário=${log.user || "—"} | perfil=${log.role || "—"} | ação=${log.action}<br />
-        detalhe=${log.detail}
-      </div>
-    `).join("");
+    auditLog.innerHTML = `<div class="notice">Acesso restrito. Apenas administradores podem visualizar os logs.</div>`;
   }
 }
 
