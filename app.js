@@ -5,7 +5,9 @@ const USERS = [
     email: "aluno@faculdade.local",
     password: "123456",
     role: "ALUNO",
-    studentId: "202400001"
+    studentId: "202400001",
+    cpf: "000.000.000-00",
+    phone: "(47) 99999-0001"
   },
   {
     id: 2,
@@ -182,6 +184,30 @@ function showApp(user) {
   currentUserName.textContent = user.name;
   currentUserDetails.textContent = `${user.email} | Perfil: ${user.role}`;
 
+  if (user.role === "ALUNO") {
+    document.querySelector("#studentName").value = user.name;
+    document.querySelector("#studentId").value = user.studentId;
+    document.querySelector("#studentCpf").value = user.cpf || "";
+    document.querySelector("#studentEmail").value = user.email;
+    document.querySelector("#studentPhone").value = user.phone || "";
+
+    document.querySelector("#studentName").disabled = true;
+    document.querySelector("#studentId").disabled = true;
+    document.querySelector("#studentCpf").disabled = true;
+    document.querySelector("#studentEmail").disabled = true;
+    document.querySelector("#studentPhone").disabled = true;
+
+    occurrenceForm.closest("article").style.display = "";
+  } else {
+    document.querySelector("#studentName").disabled = false;
+    document.querySelector("#studentId").disabled = false;
+    document.querySelector("#studentCpf").disabled = false;
+    document.querySelector("#studentEmail").disabled = false;
+    document.querySelector("#studentPhone").disabled = false;
+
+    occurrenceForm.closest("article").style.display = "";
+  }
+
   render();
 }
 
@@ -210,6 +236,17 @@ function createOccurrence(event) {
   event.preventDefault();
 
   const session = getSession();
+
+  if (!session) {
+    alert("Você precisa estar logado para registrar uma ocorrência.");
+    return;
+  }
+
+  if (session.role === "ALUNO") {
+    document.querySelector("#studentName").value = session.name;
+    document.querySelector("#studentId").value = session.studentId;
+    document.querySelector("#studentEmail").value = session.email;
+  }
 
   const occurrence = {
     id: `OC-${Math.floor(Math.random() * 9000) + 1000}`,
