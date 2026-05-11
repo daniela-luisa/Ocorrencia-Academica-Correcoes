@@ -86,7 +86,7 @@ const loginForm = document.querySelector("#loginForm");
 const occurrenceForm = document.querySelector("#occurrenceForm");
 const logoutBtn = document.querySelector("#logoutBtn");
 const exportBtn = document.querySelector("#exportBtn");
-const clearLogsBtn = document.querySelector("#clearLogsBtn");
+
 const resetBtn = document.querySelector("#resetBtn");
 const searchInput = document.querySelector("#search");
 
@@ -294,11 +294,6 @@ function exportEverything() {
   writeLog("EXPORTACAO_TOTAL", "Usuário exportou todos os dados do sistema.");
 }
 
-function clearLogs() {
-  saveAuditLogs([]);
-  render();
-}
-
 function resetData() {
   localStorage.setItem(STORAGE_KEYS.occurrences, JSON.stringify(INITIAL_OCCURRENCES));
   localStorage.setItem(STORAGE_KEYS.audit, JSON.stringify([]));
@@ -380,7 +375,6 @@ loginForm.addEventListener("submit", (event) => {
 occurrenceForm.addEventListener("submit", createOccurrence);
 logoutBtn.addEventListener("click", logout);
 exportBtn.addEventListener("click", exportEverything);
-clearLogsBtn.addEventListener("click", clearLogs);
 resetBtn.addEventListener("click", resetData);
 searchInput.addEventListener("input", render);
 
