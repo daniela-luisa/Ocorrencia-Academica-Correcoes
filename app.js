@@ -207,6 +207,8 @@ function showApp(user) {
     document.querySelector("#studentEmail").disabled = true;
 
     document.querySelector("#responsavelLabel").style.display = "";
+    document.querySelector("#internalNote").closest("label").style.display = "none";
+    document.querySelector("#internalNote").value = "";
 
     occurrenceForm.closest("article").style.display = "";
   } else {
@@ -215,6 +217,7 @@ function showApp(user) {
     document.querySelector("#studentEmail").disabled = false;
 
     document.querySelector("#responsavelLabel").style.display = "none";
+    document.querySelector("#internalNote").closest("label").style.display = "";
 
     occurrenceForm.closest("article").style.display = "";
   }
@@ -421,7 +424,7 @@ function render() {
       <td>${item.status}</td>
       <td>
         <strong>Descrição:</strong> ${item.description}<br />
-        <strong>Obs. interna:</strong> ${item.internalNote}
+        ${session.role !== "ALUNO" ? `<strong>Obs. interna:</strong> ${item.internalNote}` : ""}
       </td>
       <td>
         <div class="row-actions">
