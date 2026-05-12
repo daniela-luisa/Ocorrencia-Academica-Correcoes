@@ -368,7 +368,6 @@ function render() {
   }
 
   const term = searchInput.value.toLowerCase();
-  const session = getSession();
   const occurrences = getOccurrences();
 
   const visibleOccurrences = (() => {
