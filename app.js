@@ -298,8 +298,17 @@ function createOccurrence(event) {
 }
 
 function deleteOccurrence(id) {
+  const session = getSession();
   const occurrences = getOccurrences();
   const occurrence = occurrences.find((item) => item.id === id);
+
+  if (!occurrence) return;
+
+  if (session.role !== "ADMIN" && occurrence.createdBy !== session.email) {
+    alert("Acesso negado. Você não pode excluir esta ocorrência.");
+    return;
+  }
+
   const updated = occurrences.filter((item) => item.id !== id);
 
   saveOccurrences(updated);
@@ -308,10 +317,14 @@ function deleteOccurrence(id) {
 }
 
 function changeStatus(id, status) {
+  const session = getSession();
   const occurrences = getOccurrences();
   const occurrence = occurrences.find((item) => item.id === id);
 
-  if (!occurrence) {
+  if (!occurrence) return;
+
+  if (session.role !== "ADMIN" && occurrence.responsavel !== session.email) {
+    alert("Acesso negado. Apenas o responsável pela ocorrência pode alterar o status.");
     return;
   }
 
@@ -387,7 +400,11 @@ function render() {
   criticalOccurrences.textContent = visibleOccurrences.filter((item) => item.priority === "Crítica").length;
   lastUpdate.textContent = `Atualizado em ${new Date().toLocaleTimeString("pt-BR")}`;
 
-  occurrencesTable.innerHTML = filtered.map((item) => `
+  occurrencesTable.innerHTML = filtered.map((item) => {
+    const podeExcluir = session.role === "ADMIN" || item.createdBy === session.email;
+    const podeAlterarStatus = session.role === "ADMIN" || item.responsavel === session.email;
+
+    return `
     <tr>
       <td>
         <strong>${item.studentName}</strong><br />
@@ -403,13 +420,14 @@ function render() {
       </td>
       <td>
         <div class="row-actions">
-          <button class="btn secondary" onclick="changeStatus('${item.id}', 'Em análise')">Em análise</button>
-          <button class="btn secondary" onclick="changeStatus('${item.id}', 'Resolvida')">Resolver</button>
-          <button class="btn danger" onclick="deleteOccurrence('${item.id}')">Excluir</button>
+          ${podeAlterarStatus ? `<button class="btn secondary" onclick="changeStatus('${item.id}', 'Em análise')">Em análise</button>` : ""}
+          ${podeAlterarStatus ? `<button class="btn secondary" onclick="changeStatus('${item.id}', 'Resolvida')">Resolver</button>` : ""}
+          ${podeExcluir ? `<button class="btn danger" onclick="deleteOccurrence('${item.id}')">Excluir</button>` : ""}
         </div>
       </td>
     </tr>
-  `).join("");
+  `;
+  }).join("");
 
   if (session && session.role === "ADMIN") {
     const logs = getAuditLogs();
