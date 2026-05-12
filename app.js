@@ -219,6 +219,8 @@ function showApp(user) {
     occurrenceForm.closest("article").style.display = "";
   }
 
+  exportBtn.style.display = user.role === "ADMIN" ? "" : "none";
+
   render();
 }
 
@@ -278,7 +280,6 @@ function createOccurrence(event) {
     priority: document.querySelector("#priority").value,
     description: document.querySelector("#description").value,
     internalNote: document.querySelector("#internalNote").value,
-    privacyAck: document.querySelector("#privacyAck").checked,
     status: "Aberta",
     createdBy: session.email,
     createdAt: new Date().toISOString()
@@ -337,14 +338,18 @@ function changeStatus(id, status) {
 }
 
 function exportEverything() {
+  const session = getSession();
+
+  if (session.role !== "ADMIN") {
+    alert("Acesso negado. Apenas administradores podem exportar os dados.");
+    return;
+  }
+
   const payload = {
     exportedAt: new Date().toISOString(),
-    exportedBy: getSession(),
-    token: FAKE_API_TOKEN,
-    users: USERS,
+    exportedBy: session.email,
     occurrences: getOccurrences(),
-    audit: getAuditLogs(),
-    localStorageCopy: { ...localStorage }
+    audit: getAuditLogs()
   };
 
   const blob = new Blob([JSON.stringify(payload, null, 2)], {
